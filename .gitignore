@@ -1,0 +1,16 @@
+# IDE 内部目录
+.trae/
+
+# 原始面经源文件（不公开）
+当前收集的面经/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db

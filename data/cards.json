@@ -1,0 +1,1624 @@
+{
+  "cards": [
+    {
+      "id": "meituan-r1-q1",
+      "question": "在跨境政策检测平台和全量业务对象策略执行平台里，你分别解决了什么问题，自己负责哪部分主链路？",
+      "answer": "- 两个项目是前后承接关系：政策检测平台负责将政策公告落地为可执行规则，再检验业务对象是否命中；全量执行平台负责将策略稳定运行到存量业务对象上。\n- 个人负责后端主链路：任务拆分、异步消费、状态收敛、检索接入和 Agent 工具调度。\n- 核心取舍：复杂规则不追求完全自动化，保留人工复核入口。",
+      "company": "美团",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q2",
+      "question": "政策检测平台里，政策本身校验和政策对商品类业务对象匹配是两件事，你们分别怎么处理？",
+      "answer": "- **政策本身校验**：先做完整性和可执行性校验，验证生效范围、国家、类目、资质要求等字段能否形成有效规则。\n- **业务对象匹配**：明确条件走规则匹配，模糊条件走向量检索和历史案例辅助。\n- 关键原则：必须将 \"政策理解\" 和 \"执行匹配\" 完全拆开，否则难以排查误判问题。",
+      "company": "美团",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q3",
+      "question": "面对资质要求、属性缺失、行业差异这类复杂政策，你们如何做政策结构化理解？",
+      "answer": "采用分层处理方案，不将所有政策硬拆为固定字段：\n\n1. 明确字段用规则抽取\n2. 模糊描述用 RAG 和历史政策模板辅助理解\n3. 最终生成统一的内部规则对象\n4. 属性缺失时不直接判定通过，进入待补充或人工复核状态\n\n- 核心考量：误判成本极高，因此采取保守策略，宁愿增加人工复核环节，也不让模型直接做最终决策。",
+      "company": "美团",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q4",
+      "question": "在全量策略执行和任务状态控制里，为什么 Redis 只做临时状态，不选择开启持久化？",
+      "answer": "- Redis 在链路中的定位：仅用于窗口限流、去重、批次状态和临时进度存储，不承担最终业务数据存储职责。\n- 不开启持久化的原因：降低写放大和 I/O 抖动，提升系统性能。\n- 可靠性保障：任务可靠性由 MQ、任务表和最终落库状态保证，Redis 数据丢失最多触发重算，不会丢失业务结果。\n- 边界原则：可重建状态放 Redis，不可重建结果必须落库。",
+      "company": "美团",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q5",
+      "question": "政策来源覆盖多语种但不是标准多语言搜索场景，你们的索引和检索方案怎么设计？",
+      "answer": "- 不采用简单的多语言全文搜索（因政策来源、语法和字段结构差异极大）。\n- 核心设计：\n  1. 核心字段标准化：国家、类目、政策类型使用统一编码\n  2. 原文内容按语言和来源分别建索引\n  3. 语义部分走向量检索\n- 踩坑经验：多语言混在一个索引中会导致召回率虚高，同时误召回率也显著上升。",
+      "company": "美团",
+      "round": "一面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q6",
+      "question": "同一供给资源要覆盖东南亚、欧美、非洲等多个国家时，政策规则如何复用又保留国家差异？",
+      "answer": "- 先抽象通用政策对象：提取适用品类、资质要求、限制动作、生效时间等通用属性。\n- 国家差异通过配置补充：不将国家差异写死在主规则中，而是通过国家维度的映射配置实现（如资质名称、字段来源、行业分类差异）。\n- 执行逻辑：先走通用条件过滤，再叠加国家特定参数。\n- 缺点：配置治理成本上升，需要配套版本管理和灰度发布机制。",
+      "company": "美团",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q7",
+      "question": "你们的查询链路是业务对象变更查命中政策，还是从政策出发查影响对象？两条链路如何区分？",
+      "answer": "两条链路同时存在，职责明确分离：\n\n- **增量链路（业务对象变更）**：根据对象的国家、类目、属性、资质查询已生效政策，仅处理新增命中情况。\n- **全量链路（政策变更）**：从政策条件出发圈定候选业务对象，再分批进行检测。\n- 隔离措施：两条链路共用匹配服务，但入口、优先级和幂等键不同，避免增量任务和全量任务互相覆盖。",
+      "company": "美团",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q8",
+      "question": "从政策出发做全量业务对象策略执行时，任务拆分、资源控制和最终收敛是怎么设计的？",
+      "answer": "- **任务拆分**：不一次性全量扫描，按国家、类目、策略版本拆分为多个批次，先生成候选集合，再分批执行。\n- **资源控制**：通过 MQ 异步分发任务，Redis 做窗口控制和去重，每批任务携带版本号。\n- **最终收敛**：任务完成标志不是消息消费成功，而是批次内所有任务的状态全部落库。\n- 风险点：需警惕 \"任务看似消费完成，但中间批次失败未被收敛\" 的情况。",
+      "company": "美团",
+      "round": "一面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q9",
+      "question": "如果业务对象本身没变，但外部链接、图片或第三方资源变了，定期全量检测应该怎么补齐？",
+      "answer": "- 将外部资源纳入检测输入范围，不仅依赖本地业务对象版本。\n- 具体做法：对链接状态、图片哈希、第三方资质字段等做快照，定期比对快照差异；变化对象走增量任务，周期任务再兜底扫描。\n- 异常处理：外部资源不稳定，因此设置超时、降级和待复核状态，避免全量任务被极少数异常资源拖住。",
+      "company": "美团",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q10",
+      "question": "你在 Agent 开发里具体做了哪些后端工作，它和普通业务服务的边界在哪里？",
+      "answer": "- 开发的 Agent 定位：偏服务端编排，而非前端聊天机器人。\n- 主要后端工作：接收任务、识别任务类型、选择工具或服务调用（如政策解析、规则匹配、检索、外部校验）、将结果写回状态机。\n- 边界划分：Agent 仅负责组织流程，不将核心判定逻辑全部写入提示词；关键规则仍由代码、配置和人工复核兜底。",
+      "company": "美团",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q11",
+      "question": "既然定时任务、MQ 消费和业务服务也能调度，为什么你们还要引入 Agent 做统一编排？",
+      "answer": "- 定时任务和 MQ 的局限性：更适合稳定、单一的流程，无法高效处理包含政策解析、检索、匹配、外部校验、失败重试和人工复核的长链路复杂任务。\n- Agent 的核心价值：实现长链路任务的统一编排，避免每个服务各自写调度导致的状态分散问题，大幅降低后续排障和复用成本。\n- 原则：关注编排能力本身，不为了用 Agent 而用 Agent。",
+      "company": "美团",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r1-q12",
+      "question": "团队当前 AI Coding 只做单点辅助，如果扩展到需求、开发、测试、联调文档全流程，你会怎么推进？",
+      "answer": "- 当前使用现状：仅用于生成 DTO、接口模板、测试样例、文档初稿等单点辅助工作，不生成策略匹配和调度等核心逻辑。\n- 全流程推进思路：先从需求摘要、接口草稿、测试用例和联调文档切入，所有 AI 生成产物必须进入代码评审和测试闭环。\n- 核心原则：让 AI 提效重复工作，绝不允许 AI 越过人工确认直接影响核心链路。",
+      "company": "美团",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q13",
+      "question": "请介绍一下项目政策智能通知平台最关键的产出，以及你在项目里的贡献是什么？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q14",
+      "question": "企业政策智能通知平台当时团队怎么分工，你具体参与了哪些模块？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q15",
+      "question": "你拿到政策通知需求后，怎么把业务需求拆解成 RAG 和 Agent 的技术设计？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q16",
+      "question": "单 Agent 和多 Agent 架构选型时，你们有没有做实际质量评估和工程对比？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q17",
+      "question": "企业政策智能通知平台从需求到第一版上线，Agent 迭代周期是怎么安排的？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q18",
+      "question": "第一版上线后业务已经在使用，你怎么判断每个 Agent 版本具备上线能力？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q19",
+      "question": "你们用来评估 Agent 效果的数据集规模多大，样本来源是什么？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q20",
+      "question": "如果通过数据集发现新版本效果回退，你会怎么定位并调优 Agent？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q21",
+      "question": "Agent 链路分很多阶段，每个阶段都可能出问题，你们怎么定位是哪一阶段变化导致异常？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q22",
+      "question": "你们线上用什么观测工具排查 Agent 链路问题？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q23",
+      "question": "企业政策智能通知平台验证和生产环境分别用了哪些模型？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q24",
+      "question": "生产环境为什么主要选择 Claude，模型层怎么保证后续可切换？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q25",
+      "question": "处理一轮政策数据大概会消耗多少 Token，你们做了哪些成本优化？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q26",
+      "question": "商品策略任务执行平台里，商品命中多个策略时去重方案怎么实现？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q27",
+      "question": "研发 Oncall 期间你处理过哪些线上问题？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "meituan-r2-q28",
+      "question": "你们团队 Oncall 的响应要求是什么，遇到任务积压或 GC 问题怎么止血和复盘？",
+      "answer": "",
+      "company": "美团",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q1",
+      "question": "在自然语言转SQL查询平台的三层RAG架构里，向量检索主要解决什么问题？",
+      "answer": "我理解向量检索主要解决“自然语言和数据库语义对不上”的问题。\n比如用户说“交易收入”，库里可能是金额字段、状态字段、汇率规则组合出来的。只靠关键词匹配，很容易漏表、错字段。我把DDL、业务规则、SQL示例分别向量化，用户问题进来后召回相关上下文，再让模型生成SQL。\n它不是简单查文档，更像一个语义路由器，先帮模型找对表、规则和示例，减少瞎猜。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q2",
+      "question": "你说简单查询准确率能到95%，简单问题怎么定义？准确率提升靠什么？",
+      "answer": "我定义的简单查询主要是单表或一次Join，条件明确，聚合也比较基础，比如count、sum、group by，不涉及复杂状态流转和特殊业务规则。\n准确率最关键不是模型本身，而是让模型少猜。我们当时主要做了三件事：相关DDL只给TopK、业务规则单独召回、再补少量SQL示例。\n真正提升明显的是业务规则显式化，不然模型字段能选对，但业务口径经常错。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q3",
+      "question": "自然语言转SQL的准确率什么时候会真正收敛？AI友好的数据建模边界在哪里？",
+      "answer": "我感觉准确率不是线性涨的，大概覆盖高频问题模式后就开始收敛。\n前期从50%到80%靠的是补Schema注释、规则库和示例库；再往上主要卡在长尾表达和隐性业务规则。我们没试图把所有信息重建一遍，而是只建高频语义层，比如指标、维度、同义词、规则口径。\n拐点就是新增case只影响很小一批问题，再调Prompt收益很低。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q4",
+      "question": "你们自然语言转SQL和问答助手线上主要用了什么大模型？为什么这么选？",
+      "answer": "线上主链路主要用Qwen系列模型，Embedding也优先选中文语义效果比较稳的模型。\n原因比较现实：我们业务问题中文多、内部黑话多，Qwen在中文语义和成本上比较均衡。复杂SQL它不一定最强，但在强RAG、强规则约束下够用。\n我当时的判断是，模型只是执行器，真正决定效果的是上下文质量、规则结构化和SQL校验。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q5",
+      "question": "你们有没有评测过外部大模型？为什么最终没有直接把外部模型作为生产主链路？",
+      "answer": "有评测过，外部强模型在复杂推理和长上下文理解上确实更好，尤其是多表、多规则场景。\n但落到生产要看延迟、成本、数据合规和稳定性。我们这种内部订单查询场景，数据不能随便出城，而且每天调用量上来后成本也很敏感。\n所以最后是线上主链路用可控模型，外部模型更多做离线Benchmark和疑难case对照。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q6",
+      "question": "最近AI应用方向你重点关注哪些新技术？哪些真正适合落地到后端系统？",
+      "answer": "我比较关注Tool Calling、Agent工作流、混合检索和小模型分层。\n真正能落地的是Tool Calling和混合检索。前者能让模型从“直接生成答案”变成“选择工具和参数”，可控性更好；后者能解决纯向量召回不稳定的问题。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q7",
+      "question": "OpenClaw这类Agent框架主要解决什么问题？和普通Prompt编排有什么区别？",
+      "answer": "我理解OpenClaw这类框架，是把Agent从“Prompt里自己想步骤”变成“有状态、有工具、有执行边界”的系统。\n普通Prompt编排很多状态都隐含在上下文里，出了问题不好追。Agent框架会把计划、执行、观察、结束这些阶段显式化，每一步都有结构化输入输出。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q8",
+      "question": "如果业务希望每天早上9点自动推送一段数据分析结论，有Text2SQL能力时你怎么设计？",
+      "answer": "我认为LLM负责的是理解任务和生成论述。配置里可以写自然语言：“每天统计昨天履约成功订单数、售后率和异常Top5，并输出波动说明”。系统先解析成指标和时间范围，再拆成多个Text2SQL查询。\n查完后，环比、TopN、阈值判断由程序算，LLM只负责把结构化结果转成自然语言，避免数字对但结论乱说。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q9",
+      "question": "Java线程池在任务提交被拒绝时有哪些常见拒绝策略？线上一般怎么选？",
+      "answer": "ThreadPoolExecutor常见有四种：\n1. AbortPolicy：抛异常\n2. CallerRunsPolicy：提交线程自己执行任务\n3. DiscardPolicy：直接丢弃任务\n4. DiscardOldestPolicy：丢弃队列里最老任务\n\n线上我会按业务语义选：核心任务一般用AbortPolicy，让失败显式暴露；能接受反压的用CallerRunsPolicy；日志、埋点这类可丢任务才考虑丢弃策略。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q10",
+      "question": "HDFS如何保证已经写成功的数据尽量不丢？核心机制有哪些？",
+      "answer": "HDFS主要靠多副本、写入确认、心跳自愈和校验机制。\n写文件时，一个block会按Pipeline写到多个DataNode，多个副本确认后才算写成功。DataNode会持续向NameNode发心跳，副本数不够时后台自动补齐。\n另外block有checksum，读到损坏副本会切到其他副本。它保证的是写成功后的数据可靠，不是客户端还没提交成功的数据也一定不丢。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q11",
+      "question": "你在RAG链路里实际用了哪些工具和组件？为什么不是只靠纯向量检索？",
+      "answer": "我项目里主要是LangChain4j做编排，Elasticsearch做关键词召回，PGVector做向量检索，Redis和Caffeine做缓存。\n不只只用向量，是因为业务词和规则类知识很多时候关键词更准。比如状态码、异常类型、规则编号，ES比向量更稳定。向量更适合解决同义表达和口语化问题。\n所以实际是混合召回，再做阈值过滤和上下文裁剪。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q12",
+      "question": "你使用AI Coding做开发时遇到过什么典型问题？后面怎么改进使用方式？",
+      "answer": "我遇到比较典型的是让AI生成异步缓存回填代码，它功能上能跑，但默认给了无界队列、没处理拒绝策略，也没考虑同一个key重复回填。\n后面我把线程池改成有界队列，加拒绝策略、单飞机制和监控指标。现在我用AI Coding更多是写骨架、单测和重复代码，核心并发和降级策略还是自己定。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r2-q13",
+      "question": "Claude Code这类AI Coding Agent为什么讨论度高？和Cursor、Copilot的差异在哪里？",
+      "answer": "我觉得讨论度高，是因为它从“代码补全”往“任务执行”走了一步。\nCopilot更像局部补全，Cursor是IDE里的上下文协作，Claude Code这类更像CLI形态的Agent，可以读文件、改多处代码、跑命令、再根据结果继续修。\n但它也带来权限和安全问题，所以生产环境不能完全放开，必须有工具白名单、审计、回滚和人工确认。",
+      "company": "蚂蚁",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q14",
+      "question": "你为什么从数据库代理内核研发转向业务应用开发？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q15",
+      "question": "数据智能查询平台的项目背景是什么，主要服务哪些使用方？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q16",
+      "question": "Text2SQL 的 RAG 架构里，DDL 层具体解决什么问题？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q17",
+      "question": "业务表频繁变更、迁移时，DDL 知识库怎么保持可用？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q18",
+      "question": "Text2SQL 的规则层具体沉淀了哪些内容？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q19",
+      "question": "这套 Text2SQL 系统是单业务域使用，还是跨团队通用平台？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q20",
+      "question": "规则层依赖上下游业务逻辑，怎么主动感知业务变化？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q21",
+      "question": "Text2SQL 上线前后，准确性是怎么评测的？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q22",
+      "question": "生成的 SQL 不可用时，使用方怎么反馈，系统怎么回流优化？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q23",
+      "question": "模型能力变强以后，Text2SQL 项目的核心挑战还在哪里？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q24",
+      "question": "如果现在重构数据智能查询平台，你会优先优化哪些方向？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q25",
+      "question": "ReAct 模式和 Plan-Execute 模式有什么区别，分别适合什么场景？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q26",
+      "question": "订单售后智能问答平台和数据智能查询平台有什么区别？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q27",
+      "question": "订单售后智能问答平台的知识从哪里来，是不是只做文档向量化？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q28",
+      "question": "订单售后智能问答平台整体是 Workflow 实现，还是 Agent 自由调用？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q29",
+      "question": "订单售后智能问答平台上线后，主要监控哪些指标？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q30",
+      "question": "RAG 召回链路的监控怎么做，怎么判断召回漂移？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "mayi-r3-q31",
+      "question": "Java 中公平锁和非公平锁有什么区别，为什么公平锁效率更低？",
+      "answer": "",
+      "company": "蚂蚁",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q1",
+      "question": "LangChain 和 LangGraph 的区别",
+      "answer": "LangChain 是链式调用框架，适合 Prompt → Tool → Output 的线性流程；LangGraph 是状态机 + DAG 编排框架，解决复杂 Agent 工作流。\n\n- LangChain 弱状态；LangGraph 支持状态持久化、条件路由、Checkpoint、失败恢复、多 Agent 协同，更适合生产级 Agent。\n- 核心区别：LangChain 是**能力库**，LangGraph 是 **Agent 工作流操作系统**。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q2",
+      "question": "RAG 优化怎么做的",
+      "answer": "核心优化目标是提升**召回准确率 + 上下文质量**，各环节优化点：\n\n- **文档层**：Markdown 标题树切分、表格 / 代码特殊切块；\n- **检索层**：BM25 + 向量混合、Query Rewrite、多路召回；\n- **排序层**：CrossEncoder 重排；\n- **上下文层**：去重压缩；\n- **生成层**：Prompt 强约束防幻觉。\n- 效果参考：Recall@5 提升约 20~35%，幻觉率下降约 40%。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q3",
+      "question": "你会 Java（Spring）吗",
+      "answer": "会。\n\n- 生产级 AI 系统通常是 \n\n  Python + Java 双线栈\n\n  ：\n\n  - Python：负责 LLM、RAG、Agent 核心逻辑；\n  - Java (Spring Boot/Cloud)：负责权限、流程、微服务、中台、高并发治理。\n\n- Java 常用于：Tool 服务化、Agent 网关、审计、工作流编排、多租户 SaaS，更适合企业级稳定性与事务治理。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q4",
+      "question": "Redis 在智能体开发中的作用",
+      "answer": "Redis 本质是高性能状态中枢，在智能体开发中主要用于：\n\n- 会话记忆（Chat History）\n- Agent 状态管理\n- Workflow Checkpoint\n- Embedding/Prompt 缓存\n- 限流熔断\n- Redis Stream 事件总线\n- 分布式锁\n- 生产重点：TTL 控制、Memory 分层、防止上下文膨胀。Redis 适合短期状态，不适合长期知识库存储。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q5",
+      "question": "对 GraphRAG 的理解",
+      "answer": "GraphRAG 本质是**图谱增强检索**：\n\n- 传统 RAG 基于 Chunk 相似度；GraphRAG 会抽实体、建关系图，再基于图扩散召回，更适合多跳推理、企业知识库、医疗、法律等复杂场景。\n- 核心价值：找到 “知识关系链” 而非相似文本。\n- 难点：实体消歧、图更新、构建成本与 Token 开销。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q6",
+      "question": "如何确保 Agent 安全可控",
+      "answer": "核心原则：**模型不能直接控制真实世界**。一般做五层治理：\n\n1. Prompt Guardrail（提示词护栏）\n2. Tool 白名单与参数校验\n3. 行为审计\n4. 风险分级审批\n5. Memory / 上下文隔离\n\n- LLM 只负责 “决策建议”，系统负责 “最终执行”。不能把模型当作可信执行器。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q7",
+      "question": "为什么应用层还要安全治理",
+      "answer": "模型对齐只能解决**概率安全**，解决不了系统安全。\n\n- Prompt Injection、Tool 越权、上下文污染、动态权限、业务风险隔离都必须在应用层治理。\n- 因此还需要 RBAC、参数校验、审批、输出过滤、审计回溯。\n- 本质：**模型安全 ≠ 业务安全**。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q8",
+      "question": "哪些动作必须人工审批",
+      "answer": "所有**高风险、不可逆、资金相关**操作都必须 HITL（人工闭环）：\n\n- 转账付款、删数据、批量发邮件、改权限\n- 执行 SQL、生产环境 API/K8s 操作、代码发布等\n- 审批链路通常包含：风险分级、双确认、审计日志。\n- Agent 可自动分析，但关键动作必须人类闭环。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q9",
+      "question": "Agent 链路耗时长怎么排查",
+      "answer": "必须做**全链路 Tracing**，拆分维度定位瓶颈：\n\n- 拆分维度：LLM 耗时、RAG 检索耗时、Tool/API 耗时、Workflow 编排耗时。\n- 重点指标：首 Token 延迟、Tool 调用次数、Retry 次数、Planner 循环次数、节点耗时分布。\n- 常见优化：并行 Tool、缓存、减少规划次数、小模型路由。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q10",
+      "question": "意图识别 / 任务路由怎么做",
+      "answer": "生产一般采用**三层路由**：\n\n1. 规则路由（正则 / 关键词）\n2. 轻量分类器\n3. 小模型 / LLM Router\n\n- 原则：能规则解决就别上 LLM；高风险链路必须强约束；Router 只负责分发，不直接执行业务。\n- 目标：不是最智能，而是**最低成本稳定命中**。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q11",
+      "question": "什么时候规则路由就够了，什么时候必须上语义分类",
+      "answer": "- 适合规则路由的场景：FAQ、固定命令、工单分类、稳定 Tool 映射。优点：快、稳定、低成本、可解释。\n- 必须上语义分类的场景：用户表达模糊、多轮上下文依赖、同义表达很多时。\n- 生产实践：**规则优先，语义兜底**。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q12",
+      "question": "如果一个问题同时像 FAQ 又像 Tool 调用，你怎么处理",
+      "answer": "不能直接二选一，通常的处理流程：\n\n1. 先做意图打分\n2. 让 FAQ 与 Tool 并行候选\n3. 结合 Risk Scoring、业务状态仲裁\n\n- 示例：“查余额”，未登录走 FAQ，已登录且权限通过才允许 Tool 调用。\n- 生产原则：**“业务状态” 优先级高于 “语义理解”**。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "tencent-r1-q13",
+      "question": "如何避免错误路由把后续链路全部带偏",
+      "answer": "核心是**路由可回退**，一般通过以下机制实现：\n\n- 置信度机制\n- 澄清节点\n- 中间校验层\n- 状态机约束\n- Checkpoint 回滚\n- 多候选 Intent 保留\n- 生产中最大问题：第一步走错后全链路跑偏。因此 Agent 必须具备：自检、重规划、失败恢复、人工接管能力。",
+      "company": "腾讯",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q1",
+      "question": "介绍你做过的 AI Agent 或 RAG 相关项目，说明你在其中的角色和项目核心难点",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q2",
+      "question": "JVM 内存模型，G1 与 ZGC 在长连接流式 Agent 服务中的表现差异",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q3",
+      "question": "ThreadPoolExecutor 核心参数，Agent 并发调用多个外部工具时如何设置线程池和拒绝策略",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q4",
+      "question": "CompletableFuture 如何实现多个工具调用的并行与串行编排",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q5",
+      "question": "ReAct（Reasoning + Acting）模式的执行流程，Agent 如何防止陷入无限循环",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q6",
+      "question": "意图识别在 Agent 系统中的实现方式，什么场景下用 LLM Router、什么场景下用规则分类",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q7",
+      "question": "LangChain4j 的 Chain 与 LangGraph4j 的 StateGraph 区别，什么场景必须用 LangGraph",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q8",
+      "question": "简述 RAG 全流程，文档切分 Chunking 策略怎么设计，如何做混合检索和 Re-rank",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q9",
+      "question": "Redis 在 Agent 系统中一般存储什么数据，对话历史大 Key 如何拆分",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q10",
+      "question": "用户问题需要先后调用订单查询、物流查询、优惠计算三个工具，Agent 工作流怎么编排，工具返回数据怎么拼装给 LLM",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r1-q11",
+      "question": "手撕算法：手写 LRU 缓存（支持 get 和 put 操作）",
+      "answer": "",
+      "company": "阿里",
+      "round": "一面",
+      "type": "algorithm",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q12",
+      "question": "深入讲解 Agent 项目的整体架构，项目的 QPS、P99 延迟、GPU 推理成本如何控制和监控",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q13",
+      "question": "MySQL 大表按什么维度分库分表，跨分片聚合查询如何处理",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q14",
+      "question": "RocketMQ 事务消息保证不丢失且幂等的实现思路，Agent 异步长任务场景如何基于 MQ 设计",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q15",
+      "question": "多级缓存（本地 Caffeine + Redis）在高频 RAG 知识查询中的设计方案，问答场景下如何防范缓存击穿与缓存穿透",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q16",
+      "question": "基于 Sentinel 对 LLM API 做限流与降级的方案，GPU 推理服务故障时如何 fallback 到小模型或规则引擎",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q17",
+      "question": "LangGraph 中 State 如何定义和管理，Checkpointer 如何做状态持久化，Human-in-the-loop 如何实现",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q18",
+      "question": "多 Agent 协作的 Orchestrator-Worker 模式，Agent 之间如何实现幂等和超时重试（Saga 补偿思路）",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q19",
+      "question": "Agent 幻觉的常见原因，工程上如何通过 RAG 约束、Self-Reflection、工具结果校验来缓解幻觉",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q20",
+      "question": "Function Calling / Tool Use 的参数校验与失败重试策略，工具执行异常时 Agent 如何选择 fallback 方案",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q21",
+      "question": "基于 SSE / WebSocket 实现 Agent 流式输出接入 Java 后端的关键点，以及背压处理方案",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "ali-r2-q22",
+      "question": "手撕算法：给定一个字符串，手写实现按固定长度 + 语义重叠（overlap）的文本 Chunk 切分",
+      "answer": "",
+      "company": "阿里",
+      "round": "二面",
+      "type": "algorithm",
+      "tags": []
+    },
+    {
+      "id": "ali-r3-q23",
+      "question": "项目介绍，说明项目中遇到的最难的技术问题，以及你的排查和解决思路",
+      "answer": "",
+      "company": "阿里",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r3-q24",
+      "question": "为什么选择 ReAct 模式而非传统规则工作流，高确定性业务场景下 Agent 自主性边界如何界定",
+      "answer": "",
+      "company": "阿里",
+      "round": "三面",
+      "type": "behavioral",
+      "tags": []
+    },
+    {
+      "id": "ali-r3-q25",
+      "question": "Agent 响应 P99 延迟过高，从模型推理、网络、工具超时、序列化几个维度说明排查思路",
+      "answer": "",
+      "company": "阿里",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r3-q26",
+      "question": "Agent 产生幻觉输出违规 / 虚假内容时，如何做拦截（敏感词 + 规则引擎 + 二次校验）",
+      "answer": "",
+      "company": "阿里",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r3-q27",
+      "question": "用户点赞点踩的反馈数据如何回收用于模型微调或 Prompt 优化，数据标注闭环如何设计",
+      "answer": "",
+      "company": "阿里",
+      "round": "三面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "ali-r3-q28",
+      "question": "如果业务要求 Agent 支持图片输入做向量化检索（多模态能力），后端架构需要做哪些改造",
+      "answer": "",
+      "company": "阿里",
+      "round": "三面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "ali-r3-q29",
+      "question": "最近在学习的 AI 新技术（新模型、新框架、新协议如 MCP/A2A），以及你快速上手一门新框架的方法",
+      "answer": "",
+      "company": "阿里",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r3-q30",
+      "question": "你平时如何跟进前沿论文或开源项目，举一个你从开源项目学习并应用到实际项目中的例子",
+      "answer": "",
+      "company": "阿里",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r3-q31",
+      "question": "假如让你带两位新人做 Agent Harness 工程（SDK、评测、可观测性），你如何开展 Code Review 和技术分享",
+      "answer": "",
+      "company": "阿里",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-r3-q32",
+      "question": "手撕算法：实现一个简易版余弦相似度函数，计算两个 Embedding 向量的相似度",
+      "answer": "",
+      "company": "阿里",
+      "round": "三面",
+      "type": "algorithm",
+      "tags": []
+    },
+    {
+      "id": "ali-hr-q33",
+      "question": "讲一个你最有成就感的项目或攻克过的技术难点",
+      "answer": "",
+      "company": "阿里",
+      "round": "HR面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-hr-q34",
+      "question": "团队协作中跟产品 / 算法同学意见不合时如何处理，请举例说明",
+      "answer": "",
+      "company": "阿里",
+      "round": "HR面",
+      "type": "algorithm",
+      "tags": []
+    },
+    {
+      "id": "ali-hr-q35",
+      "question": "为什么想来阿里千问 / 淘天做 AI Agent 方向",
+      "answer": "",
+      "company": "阿里",
+      "round": "HR面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-hr-q36",
+      "question": "未来 3 年的职业规划，是走技术专家路线还是技术管理路线",
+      "answer": "",
+      "company": "阿里",
+      "round": "HR面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "ali-hr-q37",
+      "question": "能接受的工作强度和可入职时间",
+      "answer": "",
+      "company": "阿里",
+      "round": "HR面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "ali-hr-q38",
+      "question": "还有什么想问我们的",
+      "answer": "",
+      "company": "阿里",
+      "round": "HR面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q1",
+      "question": "请用通俗的语言解释一下什么是AI Agent，它的核心组成部分有哪些？",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q2",
+      "question": "你了解的AI Agent开发主要技术栈是什么？（如LangChain, LlamaIndex等）",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q3",
+      "question": "什么是LLM的\"幻觉\"问题？在Agent开发中，我们可以通过哪些技术手段来缓解或消除幻觉？",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q4",
+      "question": "请谈谈你对\"提示词工程\"的理解。在构建一个任务型Agent时，设计提示词有哪些关键原则？",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q5",
+      "question": "在Agent的上下文中，\"上下文窗口\"指的是什么？当任务对话超过上下文长度限制时，有哪些主流的处理方案？",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q6",
+      "question": "为什么在RAG架构中需要使用向量数据库？它相比传统数据库在检索上有什么优势？",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q7",
+      "question": "请简述RAG的基本工作原理。它如何帮助Agent获取更准确、更实时的信息？",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q8",
+      "question": "你了解ReAct框架吗？请描述一下它的\"思考-行动-观察\"循环是如何工作的。",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q9",
+      "question": "Agent的\"记忆\"能力通常如何实现？短期记忆和长期记忆在设计中有什么区别？",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q10",
+      "question": "在多轮对话中，如何让Agent保持对话的一致性和连贯性？会遇到哪些挑战？",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r1-q11",
+      "question": "手写算法：实现一个简单的文本相似度计算函数（例如，使用Jaccard相似度或余弦相似度）。",
+      "answer": "",
+      "company": "宇树",
+      "round": "一面",
+      "type": "algorithm",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q12",
+      "question": "请详细介绍一个你参与的AI Agent相关项目，你在其中的角色和解决的核心问题。",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q13",
+      "question": "在项目中，你们是如何进行技术选型的（比如选择特定的框架、模型或向量数据库）？权衡了哪些因素？",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q14",
+      "question": "针对你提到的项目，如果RAG的检索效果不理想（比如召回率低或精度差），你会从哪些方面进行排查和优化？",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q15",
+      "question": "在项目中，Agent的决策逻辑是如何设计的？是否应用了ReAct或类似框架？遇到了什么困难？",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q16",
+      "question": "如何评估一个AI Agent的好坏？你们项目采用了哪些评估指标或方法？",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q17",
+      "question": "在工程化部署一个Agent时，你考虑过哪些问题？（如性能、并发、稳定性、成本）",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q18",
+      "question": "如果让你设计一个支持多智能体协作的系统，你会如何规划它们之间的通信和任务分配？",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q19",
+      "question": "在开发面向用户的Agent时，如何考虑安全性和伦理问题（如防止被恶意引导、数据隐私）？",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q20",
+      "question": "谈谈你对\"Harness\"或\"Agent框架\"的理解。一个优秀的框架应该解决哪些核心问题？",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q21",
+      "question": "当Agent需要调用外部工具或API时，如何保证调用的安全性和稳定性？",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r2-q22",
+      "question": "手写算法：实现一个简单的基于前缀树的敏感词过滤功能。",
+      "answer": "",
+      "company": "宇树",
+      "round": "二面",
+      "type": "algorithm",
+      "tags": []
+    },
+    {
+      "id": "yushu-r3-q23",
+      "question": "请从架构师的角度，描述一个高性能、可扩展的AI Agent服务系统设计，需要考虑哪些核心模块？",
+      "answer": "",
+      "company": "宇树",
+      "round": "三面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-r3-q24",
+      "question": "RAG中的\"重排序\"是什么？它在提升最终答案质量中起到什么作用？有哪些常见的重排序策略？",
+      "answer": "",
+      "company": "宇树",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r3-q25",
+      "question": "对比微调大模型和使用RAG+提示词工程这两种方案来提升Agent能力，各自的优缺点和适用场景是什么？",
+      "answer": "",
+      "company": "宇树",
+      "round": "三面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-r3-q26",
+      "question": "如果业务要求Agent在复杂任务中必须保证极低的幻觉率，甚至需要可验证的推理过程，你会如何设计解决方案？",
+      "answer": "",
+      "company": "宇树",
+      "round": "三面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-r3-q27",
+      "question": "在多模态Agent成为趋势的背景下，你认为现有的技术栈会遇到哪些新的挑战？需要做哪些准备？",
+      "answer": "",
+      "company": "宇树",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r3-q28",
+      "question": "你最近关注或学习哪些AI Agent领域的新技术、新论文或新开源项目？它解决了什么痛点？",
+      "answer": "",
+      "company": "宇树",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r3-q29",
+      "question": "当你和团队成员在技术方案（例如，选择自研框架还是使用开源框架）上产生分歧时，你会如何处理？",
+      "answer": "",
+      "company": "宇树",
+      "round": "三面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-r3-q30",
+      "question": "你如何带领或影响团队，保持对AI领域快速发展的技术敏感度和学习能力？",
+      "answer": "",
+      "company": "宇树",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r3-q31",
+      "question": "对于AI Agent技术的未来商业化落地，你最看好哪个方向？为什么？",
+      "answer": "",
+      "company": "宇树",
+      "round": "三面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-r3-q32",
+      "question": "手写算法：模拟一个简单的Agent决策循环，给定一组工具和任务描述，输出执行计划（伪代码或关键步骤即可）。",
+      "answer": "",
+      "company": "宇树",
+      "round": "三面",
+      "type": "algorithm",
+      "tags": []
+    },
+    {
+      "id": "yushu-hr-q33",
+      "question": "为什么选择宇树科技？对我们公司或AI Agent业务有什么了解？",
+      "answer": "",
+      "company": "宇树",
+      "round": "HR面",
+      "type": "behavioral",
+      "tags": []
+    },
+    {
+      "id": "yushu-hr-q34",
+      "question": "你对自己未来3年的职业规划是怎样的？",
+      "answer": "",
+      "company": "宇树",
+      "round": "HR面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "yushu-hr-q35",
+      "question": "在以往的项目或工作中，遇到最大的挑战是什么？你是怎么克服的？",
+      "answer": "",
+      "company": "宇树",
+      "round": "HR面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "yushu-hr-q36",
+      "question": "你如何评价自己的优点和缺点？",
+      "answer": "",
+      "company": "宇树",
+      "round": "HR面",
+      "type": "behavioral",
+      "tags": []
+    },
+    {
+      "id": "yushu-hr-q37",
+      "question": "你期望的团队氛围和工作方式是怎样的？",
+      "answer": "",
+      "company": "宇树",
+      "round": "HR面",
+      "type": "behavioral",
+      "tags": []
+    },
+    {
+      "id": "yushu-hr-q38",
+      "question": "目前薪资状况如何？对薪资的期望是多少？",
+      "answer": "",
+      "company": "宇树",
+      "round": "HR面",
+      "type": "behavioral",
+      "tags": []
+    },
+    {
+      "id": "chengdu-zhixin-r1-q1",
+      "question": "智能助手的项目用的哪个模型？是否本地部署？服务器的 GPU 配置是多少？",
+      "answer": "",
+      "company": "成都智信",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "chengdu-zhixin-r1-q2",
+      "question": "开发的智能体是否涉及微调？你掌握哪些微调相关的技术？",
+      "answer": "",
+      "company": "成都智信",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "chengdu-zhixin-r1-q3",
+      "question": "整个项目组有多少人？RAG 的正确率、召回率分别是多少？正确率采用什么评估体系？",
+      "answer": "",
+      "company": "成都智信",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "chengdu-zhixin-r1-q4",
+      "question": "RAG 智能体的使用对象是谁？RAG 的数据集来源是什么？整理后的数据集格式是什么？用于正确率评估的数据集是怎样的？",
+      "answer": "",
+      "company": "成都智信",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "chengdu-zhixin-r1-q5",
+      "question": "如何让 RAG 具备拒识能力？或者说如何设计拒识的方向？",
+      "answer": "",
+      "company": "成都智信",
+      "round": "一面",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "chengdu-zhixin-r1-q6",
+      "question": "部署模型的具体服务器资源是多少？GPU 显存多大？可承载的并发量是多少？",
+      "answer": "",
+      "company": "成都智信",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "chengdu-zhixin-r1-q7",
+      "question": "你如何理解 CoT 提示词？如果检索出来的结果正确率不符合预期，该如何排查？",
+      "answer": "",
+      "company": "成都智信",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "chengdu-zhixin-r1-q8",
+      "question": "大模型要如何控制并发？",
+      "answer": "",
+      "company": "成都智信",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "chengdu-zhixin-r1-q9",
+      "question": "面试方还准备了一份项目生命周期报告，涉及现有资源、项目周期。",
+      "answer": "   项目定位：做一个垂直领域的大模型，覆盖设备检验、报告审核、缺陷识别、智能绘图、维保管理等，中间的所有环节都要设计到 Agent 中。",
+      "company": "成都智信",
+      "round": "一面",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q1",
+      "question": "项目介绍，简单阐明要点 1.AI 相关的内容 2. 解决的相关问题",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q2",
+      "question": "有没有接触过多智能体框架 CrewAI?",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q3",
+      "question": "多智能体框架中，如何理解 agent 中，循环与自主决策之间的关系？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q4",
+      "question": "agent 的设计中，如何才能实现自进化和自学习？如何设计底层的机制和编排？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q5",
+      "question": "是否了解过多 agent 的编排？是否处理过状态机之间的交互？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q6",
+      "question": "如何处理 agent 之间的矛盾处理和兜底机制和抛出异常？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q7",
+      "question": "关于 rag，如果存在一个 pdf，一个 doc，一个 ppt 如何做对应解析，设计方案？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q8",
+      "question": "现在有一份合同如何做切分策略？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q9",
+      "question": "如果现在的文档已经向量化了，如何判断何时使用混合检索，何时用向量检索？混合检索的优劣是什么",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q10",
+      "question": "langchain 的局限性 / 劣势？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q11",
+      "question": "langchain 链式执行，中间节点出现问题，断了如何解决，兜底",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q12",
+      "question": "langchain 和 langgraph 的执行流程有什么区别？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q13",
+      "question": "介绍一下 transformers 架构、CNN、RNN 的区别",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q14",
+      "question": "langgraph 如何挂载 tools，底层如何实现？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q15",
+      "question": "function calling 和 MCP 的区别",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q16",
+      "question": "rag 调优全量参数和局部参数的调整，他们之间有什么区别？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q17",
+      "question": "查询改写如何使用？如何做企业级的问题重写方案？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "system",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q18",
+      "question": "高并发场景下，如何保证 ai 智能体的高可用和稳定性？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q19",
+      "question": "如何处理模型幻觉？有哪些方式调优或解决？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q20",
+      "question": "前段用户输入长文本如何处理这个情况？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q21",
+      "question": "模型选择考虑哪些方向？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q22",
+      "question": "是否了解模型量化？",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    },
+    {
+      "id": "zonghe-all-q23",
+      "question": "如何减少 token 的消耗量",
+      "answer": "",
+      "company": "综合面经",
+      "round": "综合",
+      "type": "technical",
+      "tags": []
+    }
+  ]
+}

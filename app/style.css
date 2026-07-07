@@ -1,0 +1,868 @@
+/* ===========================
+   FlashInterview PWA 应用样式
+   复用展示页暗色主题，更简洁实用
+   =========================== */
+
+:root {
+  --bg: #0a0a0f;
+  --bg-soft: #101019;
+  --card-front: #151520;
+  --card-back: #1a1a2e;
+  --accent: #f59e0b;
+  --accent-soft: rgba(245, 158, 11, 0.15);
+  --accent-strong: #d97706;
+  --success: #10b981;
+  --success-soft: rgba(16, 185, 129, 0.15);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border: rgba(148, 163, 184, 0.1);
+  --border-strong: rgba(148, 163, 184, 0.2);
+  --danger: #ef4444;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: 120px;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% -10%, rgba(245, 158, 11, 0.08), transparent),
+    radial-gradient(ellipse 50% 30% at 90% 80%, rgba(99, 102, 241, 0.04), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ===========================
+   顶部栏
+   =========================== */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(10, 10, 15, 0.75);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #000;
+  font-size: 13px;
+}
+
+.progress-counter {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-family: 'Fraunces', serif;
+  white-space: nowrap;
+}
+
+.progress-counter .num {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.progress-counter .num.accent {
+  color: var(--accent);
+}
+
+/* header 右侧动作容器 */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Chrome/Edge 安装按钮：beforeinstallprompt 触发后才显示 */
+.install-btn {
+  padding: 7px 14px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.install-btn:hover {
+  background: var(--accent-strong);
+  transform: translateY(-1px);
+}
+
+/* iOS 安装提示横幅 */
+.ios-hint {
+  background: var(--accent);
+  color: #000;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ios-hint[hidden] {
+  display: none;
+}
+
+.ios-hint-text {
+  flex: 1;
+  text-align: center;
+}
+
+.ios-hint-close {
+  background: none;
+  border: none;
+  color: #000;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.ios-hint-close:hover {
+  opacity: 1;
+}
+
+/* ===========================
+   筛选标签栏
+   =========================== */
+.filter-section {
+  position: relative;
+  z-index: 2;
+  background: rgba(10, 10, 15, 0.6);
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-bar {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 20px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-bar + .filter-bar {
+  border-top: 1px solid var(--border);
+}
+
+.pill {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pill:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.pill.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ===========================
+   卡片舞台
+   =========================== */
+.card-stage {
+  position: relative;
+  z-index: 2;
+  padding: 40px 20px 20px;
+}
+
+.card-wrapper {
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.flashcard {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3/4;
+  max-height: 70vh;
+  cursor: pointer;
+  outline: none;
+}
+
+.flashcard:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 22px;
+}
+
+/* 2D crossfade 翻转 —— 绝不使用 3D transform */
+.card-face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.card-front {
+  background: linear-gradient(145deg, var(--card-front), var(--bg-soft));
+  z-index: 2;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.card-back {
+  background: linear-gradient(145deg, var(--card-back), #16162a);
+  z-index: 1;
+  opacity: 0;
+  transform: translateX(8px);
+}
+
+.flashcard.flipped .card-front {
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+}
+
+.flashcard.flipped .card-back {
+  opacity: 1;
+  transform: translateX(0);
+  z-index: 3;
+}
+
+/* 卡片内容 —— 正面 */
+.card-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.card-source {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+.card-badge {
+  padding: 3px 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.card-question {
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  overflow-y: auto;
+  word-break: break-word;
+}
+
+.card-hint {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.hint-icon {
+  font-size: 14px;
+}
+
+/* 卡片内容 —— 背面 */
+.card-answer {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+  flex: 1;
+  overflow-y: auto;
+  white-space: pre-line;
+  word-break: break-word;
+  padding-right: 4px;
+}
+
+.card-answer::-webkit-scrollbar {
+  width: 4px;
+}
+
+.card-answer::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 2px;
+}
+
+.card-actions {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.card-btn {
+  flex: 1;
+  padding: 11px 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-btn-known {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.card-btn-known:hover,
+.card-btn-known:active {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.card-btn-review {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.card-btn-review:hover,
+.card-btn-review:active {
+  background: rgba(245, 158, 11, 0.25);
+}
+
+/* ===========================
+   空池提示
+   =========================== */
+.empty-state {
+  text-align: center;
+  padding: 80px 24px;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.empty-title {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ===========================
+   浮动添加按钮
+   =========================== */
+.fab {
+  position: fixed;
+  bottom: 28px;
+  right: 24px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 22px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #000;
+  border: none;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(245, 158, 11, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fab:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(245, 158, 11, 0.5);
+}
+
+.fab:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.fab-icon {
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* ===========================
+   添加题目弹窗
+   =========================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  padding: 20px;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal {
+  background: var(--card-front);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translateY(20px) scale(0.96);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+.modal-overlay.active .modal {
+  transform: translateY(0) scale(1);
+}
+
+.modal-header {
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--card-front);
+  z-index: 1;
+}
+
+.modal-header h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 22px;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.modal-close:hover {
+  background: var(--bg-soft);
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 22px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.form-input {
+  padding: 11px 14px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  width: 100%;
+}
+
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  padding: 18px 28px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+}
+
+.btn {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+}
+
+.btn-primary:hover {
+  background: var(--accent-strong);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-soft);
+  border-color: var(--text-muted);
+}
+
+/* ===========================
+   Modal Tabs
+   =========================== */
+.modal-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-tab {
+  flex: 1;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.modal-tab:hover {
+  color: var(--text-secondary);
+}
+
+.modal-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: flex;
+}
+
+.form-textarea-lg {
+  min-height: 240px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ===========================
+   Toast
+   =========================== */
+.toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 24px;
+  background: var(--success);
+  color: #000;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.3s;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast-icon {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* ===========================
+   响应式
+   =========================== */
+@media (max-width: 600px) {
+  .header-inner {
+    padding: 12px 16px;
+  }
+
+  .logo {
+    font-size: 16px;
+  }
+
+  .logo-mark {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .progress-counter {
+    font-size: 12px;
+  }
+
+  .filter-bar {
+    padding: 8px 16px;
+  }
+
+  .pill {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .card-stage {
+    padding: 24px 16px 16px;
+  }
+
+  .card-wrapper {
+    max-width: 100%;
+  }
+
+  .card-face {
+    padding: 24px 22px;
+    border-radius: 18px;
+  }
+
+  .card-question {
+    font-size: 20px;
+  }
+
+  .card-answer {
+    font-size: 13px;
+  }
+
+  .fab {
+    bottom: 20px;
+    right: 16px;
+    padding: 12px 18px;
+    font-size: 13px;
+  }
+
+  .fab-label {
+    display: none;
+  }
+
+  .fab-icon {
+    font-size: 22px;
+  }
+
+  .modal-body {
+    padding: 20px 22px;
+  }
+
+  .modal-header {
+    padding: 20px 22px 16px;
+  }
+
+  .modal-footer {
+    padding: 16px 22px 22px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .toast {
+    bottom: 88px;
+    font-size: 13px;
+    padding: 12px 20px;
+  }
+}
+
+/* 超小屏（iPhone SE 等） */
+@media (max-width: 360px) {
+  .card-question {
+    font-size: 18px;
+  }
+
+  .card-face {
+    padding: 20px 18px;
+  }
+}

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="description" content="FlashInterview PWA 抽认卡应用 - 碎片时间刷面经">
+
+<!-- iOS PWA：Safari 添加到主屏后全屏启动 + 自定义图标 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FlashInterview">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+
+<title>FlashInterview · 抽认卡</title>
+
+<!-- PWA Manifest（通过 JS 动态加载，file:// 下自动跳过避免 CORS 错误） -->
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 顶部栏：Logo + 进度计数器 -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-mark">F</div>
+      <span class="logo-text">FlashInterview</span>
+    </div>
+    <div class="header-actions">
+      <div class="progress-counter" id="progressCounter">
+        已过 <span class="num" id="seenCount">0</span> 题 · 熟 <span class="num accent" id="knownCount">0</span>
+      </div>
+      <!-- Chrome/Edge：beforeinstallprompt 触发后显示 -->
+      <button class="install-btn" id="installBtn" type="button" hidden>安装到主屏</button>
+    </div>
+  </div>
+</header>
+
+<!-- iOS 安装提示：Safari 下显示手动安装指引（Chrome 无 beforeinstallprompt） -->
+<div class="ios-hint" id="iosHint" hidden>
+  <span class="ios-hint-text">分享 → 添加到主屏幕，离线也能刷面经</span>
+  <button class="ios-hint-close" id="iosHintClose" type="button" aria-label="关闭">×</button>
+</div>
+
+<!-- 筛选区 -->
+<div class="filter-section">
+  <div class="filter-bar" id="companyBar" role="tablist" aria-label="公司筛选">
+    <!-- 公司标签由 JS 渲染 -->
+  </div>
+  <div class="filter-bar" id="typeBar" role="tablist" aria-label="类型筛选">
+    <!-- 类型标签由 JS 渲染 -->
+  </div>
+</div>
+
+<!-- 卡片舞台 -->
+<main class="card-stage">
+  <div class="card-wrapper">
+    <div class="flashcard" id="flashcard" role="button" tabindex="0" aria-label="点击翻面">
+      <!-- 正面 -->
+      <div class="card-face card-front">
+        <div class="card-label">
+          <span class="card-source" id="cardSource">来源 · 轮次</span>
+          <span class="card-badge" id="cardBadge">类型</span>
+        </div>
+        <div class="card-question" id="cardQuestion">
+          题目加载中…
+        </div>
+        <div class="card-hint">
+          <span class="hint-icon">👆</span>
+          <span>点击翻面</span>
+        </div>
+      </div>
+      <!-- 背面 -->
+      <div class="card-face card-back">
+        <div class="card-label">
+          <span class="card-source">参考答案</span>
+          <span class="card-badge" id="cardBadgeBack">类型</span>
+        </div>
+        <div class="card-answer" id="cardAnswer">
+          答案文本
+        </div>
+        <div class="card-actions">
+          <button class="card-btn card-btn-known" id="btnKnown" type="button">熟了 ✓</button>
+          <button class="card-btn card-btn-review" id="btnReview" type="button">再来一遍</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 空池提示 -->
+    <div class="empty-state" id="emptyState" hidden>
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">该筛选条件下暂无题目</div>
+      <div class="empty-desc">试试切换其他公司或类型，或点击右下角 + 添加新题</div>
+    </div>
+  </div>
+</main>
+
+<!-- 浮动添加按钮 -->
+<button class="fab" id="fab" type="button" aria-label="添加题目">
+  <span class="fab-icon">+</span>
+  <span class="fab-label">添加题目</span>
+</button>
+
+<!-- 添加题目弹窗 -->
+<div class="modal-overlay" id="addModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal" id="modalCard">
+    <div class="modal-header">
+      <h3 id="modalTitle">添加新题目</h3>
+      <button class="modal-close" id="modalClose" type="button" aria-label="关闭">×</button>
+    </div>
+
+    <!-- Tab 切换 -->
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tabManual" type="button">手动添加</button>
+      <button class="modal-tab" id="tabImport" type="button">从 Markdown 导入</button>
+    </div>
+
+    <!-- 手动添加表单 -->
+    <form class="modal-body tab-panel active" id="addForm">
+      <div class="form-group">
+        <label class="form-label" for="newQuestion">题目内容</label>
+        <textarea class="form-input form-textarea" id="newQuestion" placeholder="例如：RAG 和微调各有什么优缺点？" required></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="newAnswer">参考答案</label>
+        <textarea class="form-input form-textarea" id="newAnswer" placeholder="写下你的答案要点（支持换行）..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="newCompany">公司</label>
+          <select class="form-input" id="newCompany">
+            <option value="美团">美团</option>
+            <option value="蚂蚁">蚂蚁</option>
+            <option value="腾讯">腾讯</option>
+            <option value="阿里">阿里</option>
+            <option value="宇树">宇树</option>
+            <option value="成都智信">成都智信</option>
+            <option value="我的" selected>我的</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="newType">题目类型</label>
+          <select class="form-input" id="newType">
+            <option value="technical">技术题</option>
+            <option value="behavioral">行为题</option>
+            <option value="system">系统设计</option>
+            <option value="algorithm">算法题</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="newTags">标签（用逗号分隔）</label>
+        <input type="text" class="form-input" id="newTags" placeholder="例如：RAG, 向量数据库, 模型选型">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancel">取消</button>
+        <button type="submit" class="btn btn-primary" id="btnSubmit">添加到题库 →</button>
+      </div>
+    </form>
+
+    <!-- Markdown 导入面板 -->
+    <div class="modal-body tab-panel" id="panelImport" style="display:none">
+      <div class="form-group">
+        <label class="form-label">公司</label>
+        <select class="form-input" id="importCompany">
+          <option value="美团">美团</option>
+          <option value="蚂蚁">蚂蚁</option>
+          <option value="腾讯">腾讯</option>
+          <option value="阿里">阿里</option>
+          <option value="宇树">宇树</option>
+          <option value="成都智信">成都智信</option>
+          <option value="我的" selected>我的</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">面试轮次</label>
+        <select class="form-input" id="importRound">
+          <option value="一面">一面</option>
+          <option value="二面">二面</option>
+          <option value="三面">三面</option>
+          <option value="HR面">HR面</option>
+          <option value="综合" selected>综合</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="importText">粘贴 Markdown 内容</label>
+        <textarea class="form-input form-textarea form-textarea-lg" id="importText" placeholder="将面经 Markdown 内容粘贴到此处，支持以下格式：&#10;&#10;### Q1：问题文本&#10;答案内容...&#10;&#10;或&#10;&#10;1. 问题文本&#10;2. 问题文本"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnImportCancel">取消</button>
+        <button type="button" class="btn btn-primary" id="btnImport">解析并导入 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 提示 -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span class="toast-icon">✓</span>
+  <span class="toast-text">题目已添加到题库！</span>
+</div>
+
+<script src="app.js"></script>
+<script>
+  // manifest 动态加载：仅 http/https 下生效，file:// 下跳过避免 CORS 错误
+  if (location.protocol.startsWith('http')) {
+    var link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = 'manifest.json';
+    document.head.appendChild(link);
+  }
+
+  // Service Worker 仅在 http/https 下注册（file:// 协议不支持）
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js').then(function(reg) {
+        console.log('[FlashInterview] SW registered:', reg.scope);
+      }).catch(function(err) {
+        console.warn('[FlashInterview] SW registration failed:', err);
+      });
+    });
+  }
+
+  // PWA 安装：Chrome/Edge 接管 beforeinstallprompt，显示自定义按钮
+  // iOS Safari 不支持该事件，改由下方 iOS 提示横幅引导
+  (function() {
+    var installBtn = document.getElementById('installBtn');
+    var deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (installBtn) installBtn.hidden = false;
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', function() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function(choice) {
+          if (choice.outcome === 'accepted') {
+            console.log('[FlashInterview] 用户已安装到主屏');
+          }
+          deferredPrompt = null;
+          installBtn.hidden = true;
+        });
+      });
+    }
+
+    window.addEventListener('appinstalled', function() {
+      if (installBtn) installBtn.hidden = true;
+    });
+  })();
+
+  // iOS 检测：iPhone/iPad Safari 且非 Chrome，显示手动安装提示
+  (function() {
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPhone|iPad|iPod/.test(ua) && !/CriOS|FxiOS/.test(ua);
+    var iosHint = document.getElementById('iosHint');
+    var iosHintClose = document.getElementById('iosHintClose');
+    if (isIOS && iosHint && location.protocol.startsWith('http')) {
+      // 首次访问展示；用户关闭后本次会话不再出现
+      if (!sessionStorage.getItem('iosHintDismissed')) {
+        iosHint.hidden = false;
+      }
+      if (iosHintClose) {
+        iosHintClose.addEventListener('click', function() {
+          iosHint.hidden = true;
+          sessionStorage.setItem('iosHintDismissed', '1');
+        });
+      }
+    }
+  })();
+</script>
+</body>
+</html>
